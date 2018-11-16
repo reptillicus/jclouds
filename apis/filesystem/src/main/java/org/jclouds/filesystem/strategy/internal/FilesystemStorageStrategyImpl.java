@@ -17,7 +17,6 @@
 package org.jclouds.filesystem.strategy.internal;
 
 import static com.google.common.base.Charsets.US_ASCII;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.io.BaseEncoding.base16;
@@ -27,6 +26,7 @@ import static java.nio.file.Files.getPosixFilePermissions;
 import static java.nio.file.Files.probeContentType;
 import static java.nio.file.Files.readAttributes;
 import static java.nio.file.Files.setPosixFilePermissions;
+import static java.nio.file.Files.newDirectoryStream;
 import static org.jclouds.filesystem.util.Utils.delete;
 import static org.jclouds.filesystem.util.Utils.isPrivate;
 import static org.jclouds.filesystem.util.Utils.isWindows;
@@ -41,6 +41,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -254,15 +255,49 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
    public void clearContainer(String container, ListContainerOptions options) {
       filesystemContainerNameValidator.validate(container);
       // TODO: these require calling removeDirectoriesTreeOfBlobKey
-      checkArgument(options.getDir() == null && options.getPrefix() == null, "cannot specify directory or prefix");
+//      checkArgument(options.getDir() == null && options.getPrefix() == null, "cannot specify directory or prefix");
+      String optsPrefix;
+      // Pick whichever one is not null? Not sure what to do until inDirectory is deprecated.
+      optsPrefix = options.getDir() == null ? options.getPrefix() : options.getDir();
+      // If both are null, just use an empty string
+      optsPrefix = optsPrefix == null ? "" : optsPrefix;
+      String normalizedOptsPath = normalize(optsPrefix);
+      String basePath = buildPathStartingFromBaseDir(container, normalizedOptsPath);
+      filesystemBlobKeyValidator.validate(basePath);
       try {
-         File containerFile = openFolder(container);
-         File[] children = containerFile.listFiles();
-         if (null != children) {
-            for (File child : children)
-               if (options.isRecursive() || child.isFile()) {
-                  Utils.deleteRecursively(child);
+         File object = new File(basePath);
+         if (object.isFile()) {
+            // To mimic the S3 type blobstores, a prefix for an object blob
+            // should also get deleted
+            delete(object);
+         }
+         else if (object.isDirectory() & (optsPrefix.endsWith(File.separator) | isNullOrEmpty(optsPrefix))) {
+            // S3 blobstores will only match prefixes that end with a trailing slash/file separator
+            // For insance, if we have a blob at /path/1/2/a, a prefix of /path/1/2 will not list /path/1/2/a
+            // but a prefix of /path/1/2/ will
+            File containerFile = openFolder(container + File.separator + normalizedOptsPath);
+            File[] children = containerFile.listFiles();
+            if (null != children) {
+               for (File child : children) {
+                  if (options.isRecursive()) {
+                     Utils.deleteRecursively(child);
+                  } else {
+                     if (child.isFile()) {
+                        Utils.delete(child);
+                     }
+                  }
                }
+            }
+
+            // Empty dirs in path if they don't have any objects
+            if (!isNullOrEmpty(optsPrefix)) {
+               if (options.isRecursive()) {
+                  //first, remove the empty dir. It should be totally empty if it was a
+                  // recursive delete
+                  deleteDirectory(container, optsPrefix);
+               }
+               removeDirectoriesTreeOfBlobKey(container, optsPrefix);
+            }
          }
       } catch (IOException e) {
          logger.error(e, "An error occurred while clearing container %s", container);
@@ -855,6 +890,17 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
    }
 
    /**
+    * Checks if a directory is empty using a DirectoryStream iterator
+    *
+    * @param directoryPath
+    */
+   private boolean isDirEmpty(String directoryPath) throws IOException {
+      Path path = new File(directoryPath).toPath();
+      try (DirectoryStream<Path> dirStream = newDirectoryStream(path)) {
+         return !dirStream.iterator().hasNext();
+      }
+   }
+   /**
     * Removes recursively the directory structure of a complex blob key, only if the directory is
     * empty
     *
@@ -867,6 +913,7 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
       File file = new File(normalizedBlobKey);
       // TODO
       // "/media/data/works/java/amazon/jclouds/master/filesystem/aa/bb/cc/dd/eef6f0c8-0206-460b-8870-352e6019893c.txt"
+
       String parentPath = file.getParent();
       // no need to manage "/" parentPath, because "/" cannot be used as start
       // char of blobkey
@@ -885,17 +932,26 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
             logger.debug("Could not look for attributes from %s: %s", directory, e);
          }
 
-         String[] children = directory.list();
-         if (null == children || children.length == 0) {
-            try {
-               delete(directory);
-            } catch (IOException e) {
-               logger.debug("Could not delete %s: %s", directory, e);
-               return;
+
+//         String[] children = directory.list();
+//         if (null == children || children.length == 0) {
+         // Don't need to do a listing on the dir, which could be costly. The iterator should be more performant.
+         try {
+            if (isDirEmpty(directory.getPath())) {
+               try {
+                  delete(directory);
+               } catch (IOException e) {
+                  logger.debug("Could not delete %s: %s", directory, e);
+                  return;
+               }
+               // recursively call for removing other path
+               removeDirectoriesTreeOfBlobKey(container, parentPath);
             }
-            // recursively call for removing other path
-            removeDirectoriesTreeOfBlobKey(container, parentPath);
+         } catch (IOException e ) {
+            logger.debug("Could not locate directory %s", directory, e);
+            return;
          }
+
       }
    }
 

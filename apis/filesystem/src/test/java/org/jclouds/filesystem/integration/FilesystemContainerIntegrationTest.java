@@ -196,6 +196,7 @@ public class FilesystemContainerIntegrationTest extends BaseContainerIntegration
 
    @Override
    public void testClearWithOptions() throws InterruptedException {
-      throw new SkipException("filesystem does not support clear with options");
+//      throw new SkipException("filesystem does not support clear with options");
+      super.testClearWithOptions();
    }
 }
