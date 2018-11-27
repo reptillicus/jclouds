@@ -35,6 +35,7 @@ import static org.testng.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.Date;
@@ -683,6 +684,32 @@ public class BaseBlobIntegrationTest extends BaseBlobStoreIntegrationTest {
       ByteSource byteSource = TestUtils.randomByteSource().slice(0, length);
       Payload payload = new InputStreamPayload(byteSource.openStream());
       testPut(payload, null, new ByteSourcePayload(byteSource), length, new PutOptions().multipart(true));
+   }
+
+   @Test(groups = { "integration", "live" })
+   public void testPutHugeObject() throws Exception {
+      //Create a 25GB file, 
+      long length = 25L * 1024L  * 1024L * 1024L;
+      BlobStore blobStore = view.getBlobStore();
+      String containerName = getContainerName();
+      try {
+         File tempFile = File.createTempFile("prefix", "suffix");
+         tempFile.deleteOnExit();
+         RandomAccessFile raf = new RandomAccessFile(tempFile, "rw");
+         raf.setLength(length);
+         ByteSource byteSource = Files.asByteSource(tempFile);
+         Payload payload = new ByteSourcePayload(byteSource);
+         Blob blob = blobStore.blobBuilder("huge-object")
+                 .payload(payload)
+                 .contentLength(raf.length())
+                 .contentType(MediaType.APPLICATION_XML)
+                 .build();
+         String etag = blobStore.putBlob(containerName, blob, new PutOptions().multipart(true));
+         assertThat(etag).isNotEmpty();
+         assertThat(blob.getMetadata().getContentMetadata().getContentLength()).isEqualTo(length);
+      } finally {
+         returnContainer(containerName);
+      }
    }
 
    @Test(groups = { "integration", "live" })

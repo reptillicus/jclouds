@@ -31,4 +31,10 @@ public class TransientBlobIntegrationTest extends BaseBlobIntegrationTest {
    public void testSetBlobAccess() throws Exception {
       throw new SkipException("transient does not support anonymous access");
    }
+
+   @Override
+   @Test(groups = { "integration", "live" })
+   public void testPutHugeObject() throws Exception {
+      throw new SkipException("transient does not support large objects");
+   }
 }

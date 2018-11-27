@@ -74,4 +74,9 @@ public class S3BlobIntegrationLiveTest extends BaseBlobIntegrationTest {
          throw new SkipException("S3 does not allow setting Glacier storage class on putBlob", hre);
       }
    }
+
+   @Override
+   public void testPutHugeObject() throws Exception {
+      super.testPutHugeObject();
+   }
 }
