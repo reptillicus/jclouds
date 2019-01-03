@@ -59,6 +59,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
 
+import com.google.common.base.Strings;
 import org.jclouds.blobstore.ContainerNotFoundException;
 import org.jclouds.blobstore.KeyNotFoundException;
 import org.jclouds.blobstore.LocalStorageStrategy;
@@ -255,12 +256,11 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
    public void clearContainer(String container, ListContainerOptions options) {
       filesystemContainerNameValidator.validate(container);
       // TODO: these require calling removeDirectoriesTreeOfBlobKey
-//      checkArgument(options.getDir() == null && options.getPrefix() == null, "cannot specify directory or prefix");
       String optsPrefix;
-      // Pick whichever one is not null? Not sure what to do until inDirectory is deprecated.
+      // TODO: Pick whichever one is not null? Not sure what to do until inDirectory is deprecated.
       optsPrefix = options.getDir() == null ? options.getPrefix() : options.getDir();
       // If both are null, just use an empty string
-      optsPrefix = optsPrefix == null ? "" : optsPrefix;
+      optsPrefix = Strings.nullToEmpty(optsPrefix);
       String normalizedOptsPath = normalize(optsPrefix);
       String basePath = buildPathStartingFromBaseDir(container, normalizedOptsPath);
       filesystemBlobKeyValidator.validate(basePath);
@@ -271,9 +271,9 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
             // should also get deleted
             delete(object);
          }
-         else if (object.isDirectory() & (optsPrefix.endsWith(File.separator) | isNullOrEmpty(optsPrefix))) {
+         else if (object.isDirectory() && (optsPrefix.endsWith(File.separator) || isNullOrEmpty(optsPrefix))) {
             // S3 blobstores will only match prefixes that end with a trailing slash/file separator
-            // For insance, if we have a blob at /path/1/2/a, a prefix of /path/1/2 will not list /path/1/2/a
+            // For instance, if we have a blob at /path/1/2/a, a prefix of /path/1/2 will not list /path/1/2/a
             // but a prefix of /path/1/2/ will
             File containerFile = openFolder(container + File.separator + normalizedOptsPath);
             File[] children = containerFile.listFiles();
@@ -290,7 +290,7 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
             }
 
             // Empty dirs in path if they don't have any objects
-            if (!isNullOrEmpty(optsPrefix)) {
+            if (!optsPrefix.isEmpty()) {
                if (options.isRecursive()) {
                   //first, remove the empty dir. It should be totally empty if it was a
                   // recursive delete
@@ -913,7 +913,6 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
       File file = new File(normalizedBlobKey);
       // TODO
       // "/media/data/works/java/amazon/jclouds/master/filesystem/aa/bb/cc/dd/eef6f0c8-0206-460b-8870-352e6019893c.txt"
-
       String parentPath = file.getParent();
       // no need to manage "/" parentPath, because "/" cannot be used as start
       // char of blobkey
@@ -932,9 +931,6 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
             logger.debug("Could not look for attributes from %s: %s", directory, e);
          }
 
-
-//         String[] children = directory.list();
-//         if (null == children || children.length == 0) {
          // Don't need to do a listing on the dir, which could be costly. The iterator should be more performant.
          try {
             if (isDirEmpty(directory.getPath())) {

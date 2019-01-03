@@ -197,7 +197,6 @@ public class BaseContainerIntegrationTest extends BaseBlobStoreIntegrationTest {
          options.prefix("path/1/2/3");
          options.recursive();
          view.getBlobStore().clearContainer(containerName, options);
-         view.getBlobStore().countBlobs(containerName);
          assertConsistencyAwareBlobExists(containerName, "path/1/a");
          assertConsistencyAwareBlobExists(containerName, "path/1/2/b");
          assertConsistencyAwareBlobDoesntExist(containerName, "path/1/2/3");
