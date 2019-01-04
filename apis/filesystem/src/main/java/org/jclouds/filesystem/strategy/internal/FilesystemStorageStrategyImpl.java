@@ -17,6 +17,7 @@
 package org.jclouds.filesystem.strategy.internal;
 
 import static com.google.common.base.Charsets.US_ASCII;
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.io.BaseEncoding.base16;
@@ -255,12 +256,9 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
    @Override
    public void clearContainer(String container, ListContainerOptions options) {
       filesystemContainerNameValidator.validate(container);
-      if (options.getDir() != null && options.getPrefix() != null) {
-         Throwables.propagate(new IOException("Cannot use both dir and prefix at the same time."));
-      }
+      checkArgument((options.getDir() == null) || (options.getPrefix() == null), "cannot specify both directory and prefix");
       // TODO: these require calling removeDirectoriesTreeOfBlobKey
       String optsPrefix;
-      // TODO: Pick whichever one is not null? Not sure what to do until inDirectory is deprecated.
       optsPrefix = options.getDir() == null ? options.getPrefix() : options.getDir();
       // If both are null, just use an empty string
       optsPrefix = Strings.nullToEmpty(optsPrefix);
