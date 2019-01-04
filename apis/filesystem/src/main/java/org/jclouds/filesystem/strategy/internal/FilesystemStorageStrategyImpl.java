@@ -255,6 +255,9 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
    @Override
    public void clearContainer(String container, ListContainerOptions options) {
       filesystemContainerNameValidator.validate(container);
+      if (options.getDir() != null && options.getPrefix() != null) {
+         Throwables.propagate(new IOException("Cannot use both dir and prefix at the same time."));
+      }
       // TODO: these require calling removeDirectoriesTreeOfBlobKey
       String optsPrefix;
       // TODO: Pick whichever one is not null? Not sure what to do until inDirectory is deprecated.
@@ -943,7 +946,7 @@ public class FilesystemStorageStrategyImpl implements LocalStorageStrategy {
                // recursively call for removing other path
                removeDirectoriesTreeOfBlobKey(container, parentPath);
             }
-         } catch (IOException e ) {
+         } catch (IOException e) {
             logger.debug("Could not locate directory %s", directory, e);
             return;
          }
