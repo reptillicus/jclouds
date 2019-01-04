@@ -39,14 +39,20 @@ public abstract class B2ObjectList {
    @AutoValue
    public abstract static class Entry {
       public abstract Action action();
+      public abstract String accountId();
+      public abstract String bucketId();
       @Nullable public abstract String fileId();
       public abstract String fileName();
-      public abstract long size();
+      public abstract long contentLength();
+      @Deprecated
+      public long size() {
+         return contentLength();
+      }
       public abstract Date uploadTimestamp();
 
-      @SerializedNames({"action", "fileId", "fileName", "size", "uploadTimestamp"})
-      public static Entry create(Action action, @Nullable String fileId, String fileName, long size, long uploadTimestamp) {
-         return new AutoValue_B2ObjectList_Entry(action, fileId, fileName, size, new Date(uploadTimestamp));
+      @SerializedNames({"action", "accountId", "bucketId", "fileId", "fileName", "contentLength", "uploadTimestamp"})
+      public static Entry create(Action action, String accountId, String bucketId, @Nullable String fileId, String fileName, long contentLength, long uploadTimestamp) {
+         return new AutoValue_B2ObjectList_Entry(action, accountId, bucketId, fileId, fileName, contentLength, new Date(uploadTimestamp));
       }
    }
 }

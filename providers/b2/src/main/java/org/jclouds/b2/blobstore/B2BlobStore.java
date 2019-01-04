@@ -205,9 +205,9 @@ public final class B2BlobStore extends BaseBlobStore {
          } else {
             Map<String, String> userMetadata = ImmutableMap.of();
             ContentMetadata metadata = ContentMetadataBuilder.create()
-                  .contentLength(entry.size())
+                  .contentLength(entry.contentLength())
                   .build();
-            builder.add(new BlobMetadataImpl(null, entry.fileName(), null, null, null, null, entry.uploadTimestamp(), userMetadata, null, container, metadata, entry.size()));
+            builder.add(new BlobMetadataImpl(null, entry.fileName(), null, null, null, null, entry.uploadTimestamp(), userMetadata, null, container, metadata, entry.contentLength()));
          }
       }
       return new PageSetImpl<StorageMetadata>(builder.build(), list.nextFileName());
@@ -229,7 +229,9 @@ public final class B2BlobStore extends BaseBlobStore {
          throw new UnsupportedOperationException("B2 only supports private access blobs");
       }
 
-      if (options.isMultipart()) {
+      long contentLength = Preconditions.checkNotNull(blob.getMetadata().getContentMetadata().getContentLength(),
+            "must provide content-length to use multi-part upload");
+      if (options.isMultipart() && contentLength >= auth.get().recommendedPartSize()) {
          return putMultipartBlob(container, blob, options);
       } else {
          String name = blob.getMetadata().getName();

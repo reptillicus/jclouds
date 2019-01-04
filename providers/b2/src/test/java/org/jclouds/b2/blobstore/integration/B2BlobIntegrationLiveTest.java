@@ -65,16 +65,6 @@ public final class B2BlobIntegrationLiveTest extends BaseBlobIntegrationTest {
    }
 
    @Override
-   public void testCopyBlobCopyMetadata() throws Exception {
-      try {
-         super.testCopyBlobCopyMetadata();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
-   }
-
-   @Override
    public void testCopyBlobReplaceMetadata() throws Exception {
       try {
          super.testCopyBlobReplaceMetadata();
@@ -85,53 +75,8 @@ public final class B2BlobIntegrationLiveTest extends BaseBlobIntegrationTest {
    }
 
    @Override
-   public void testCopyIfMatch() throws Exception {
-      try {
-         super.testCopyIfMatch();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
-   }
-
-   @Override
-   public void testCopyIfNoneMatch() throws Exception {
-      try {
-         super.testCopyIfNoneMatch();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
-   }
-
-   @Override
-   public void testCopyIfModifiedSince() throws Exception {
-      try {
-         super.testCopyIfModifiedSince();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
-   }
-
-   @Override
-   public void testCopyIfUnmodifiedSince() throws Exception {
-      try {
-         super.testCopyIfUnmodifiedSince();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
-   }
-
-   @Override
    public void testPutObjectStream() throws InterruptedException, IOException, ExecutionException {
-      try {
-         super.testPutObjectStream();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 does not support the Cache-Control header", iae);
-      }
+      throw new SkipException("B2 requires a Content-Length");
    }
 
    @Override
@@ -238,36 +183,6 @@ public final class B2BlobIntegrationLiveTest extends BaseBlobIntegrationTest {
    public void testMultipartUploadSinglePart() throws Exception {
       try {
          super.testMultipartUploadSinglePart();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 requires at least two parts", iae);
-      }
-   }
-
-   @Test(groups = { "integration", "live" })
-   public void testPutBlobTierStandardMultipart() throws Exception {
-      try {
-         super.testPutBlobTierStandardMultipart();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 requires at least two parts", iae);
-      }
-   }
-
-   @Test(groups = { "integration", "live" })
-   public void testPutBlobTierInfrequentMultipart() throws Exception {
-      try {
-         super.testPutBlobTierInfrequentMultipart();
-         failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
-      } catch (IllegalArgumentException iae) {
-         throw new SkipException("B2 requires at least two parts", iae);
-      }
-   }
-
-   @Test(groups = { "integration", "live" })
-   public void testPutBlobTierArchiveMultipart() throws Exception {
-      try {
-         super.testPutBlobTierArchiveMultipart();
          failBecauseExceptionWasNotThrown(IllegalArgumentException.class);
       } catch (IllegalArgumentException iae) {
          throw new SkipException("B2 requires at least two parts", iae);
